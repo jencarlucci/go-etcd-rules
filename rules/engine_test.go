@@ -11,24 +11,34 @@ import (
 )
 
 type mockRuleManager struct {
-	staticRules map[staticRule]int
+	staticRules        map[staticRule]int
 	watcherPrefixes    prefixMap
 	crawlerPrefixes    prefixMap
+	addRuleWatcherOnly bool
 }
 
 func newMockRuleManager() ruleManager {
 	return &mockRuleManager{
-		watcherPrefixes:    NewPrefixMap(),
-		crawlerPrefixes:    NewPrefixMap(),
+		watcherPrefixes: NewPrefixMap(),
+		crawlerPrefixes: NewPrefixMap(),
 	}
 }
 
-func (m * mockRuleManager) getStaticRules(key string, value *string) map[staticRule]int {
+func (m *mockRuleManager) getStaticRules(key string, value *string) map[staticRule]int {
 	return m.staticRules
 }
 
-func (m * mockRuleManager) addRule(rule DynamicRule, watcherOnly bool) int {
+func (m *mockRuleManager) addRule(rule DynamicRule, watcherOnly bool) int {
+	m.addRuleWatcherOnly = watcherOnly
 	return 0
+}
+
+func (m *mockRuleManager) getWatcherPrefixes() prefixMap {
+	return m.watcherPrefixes
+}
+
+func (m *mockRuleManager) getCrawlerPrefixes() prefixMap {
+	return m.crawlerPrefixes
 }
 
 func channelWriteAfterCall(channel chan bool, f func()) {
@@ -120,4 +130,12 @@ func TestV3CallbackWrapper(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestAddRule(t *testing.T) {
+	cfg, _ := initV3Etcd()
+	eng := NewV3Engine(cfg, getTestLogger())
+	value := "val"
+	rule, _ := NewEqualsLiteralRule("/key", &value)
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleWatcherOnly(true))
 }

@@ -23,6 +23,8 @@ func (p *prefixMap) Set(prefix, value string) {
 type ruleManager interface {
 	getStaticRules(key string, value *string) map[staticRule]int
 	addRule(rule DynamicRule, watcherOnly bool) int
+	getWatcherPrefixes() prefixMap
+	getCrawlerPrefixes() prefixMap
 }
 
 type ruleManagerImpl struct {
@@ -94,6 +96,14 @@ func (rm *ruleManagerImpl) addRule(rule DynamicRule, watcherOnly bool) int {
 	lastIndex := p.currentIndex
 	p.currentIndex = p.currentIndex + 1
 	return lastIndex
+}
+
+func (rm *ruleManagerImpl) getWatcherPrefixes() prefixMap {
+	return rm.watcherPrefixes
+}
+
+func (rm *ruleManagerImpl) getCrawlerPrefixes() prefixMap {
+	return rm.crawlerPrefixes
 }
 
 // Removes any path prefixes that have other path prefixes as

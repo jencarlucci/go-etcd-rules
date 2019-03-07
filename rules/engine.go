@@ -83,7 +83,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
-	keyProc := newV3KeyProcessor(channel, &ruleMgr)
+	keyProc := newV3KeyProcessor(channel, ruleMgr)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			cCloser: func() {
@@ -230,8 +230,8 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *v3Engine) Run() {
-	watcherPrefixes := e.ruleMgr.watcherPrefixes
-	crawlerPrefixes := e.ruleMgr.crawlerPrefixes
+	watcherPrefixes := e.ruleMgr.getWatcherPrefixes()
+	crawlerPrefixes := e.ruleMgr.getCrawlerPrefixes()
 	// This is a map; used to ensure there are no duplicates
 	for prefix := range watcherPrefixes.prefixes {
 		logger := e.logger.With(zap.String("prefix", prefix))

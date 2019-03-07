@@ -16,6 +16,8 @@ func TestRuleOptions(t *testing.T) {
 	assert.Equal(t, threeHundred, opts.lockTimeout)
 	opts = makeRuleOptions(RuleContextProvider(getTestContextProvider()))
 	verifyTestContextProvider(t, opts.contextProvider)
+	opts = makeRuleOptions(RuleWatcherOnly(true))
+	assert.True(t, opts.watcherOnly)
 }
 
 func TestEngineOptions(t *testing.T) {
