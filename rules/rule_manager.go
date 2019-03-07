@@ -8,7 +8,8 @@ type ruleManager struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
-	prefixes           map[string]string
+	crawlerPrefixes    map[string]string
+	watcherPrefixes    map[string]string
 	rules              []DynamicRule
 	enhancedRuleFilter bool
 }
@@ -16,7 +17,8 @@ type ruleManager struct {
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
-		prefixes:           map[string]string{},
+		crawlerPrefixes:    map[string]string{},
+		watcherPrefixes:    map[string]string{},
 		constraints:        constraints,
 		currentIndex:       0,
 		rules:              []DynamicRule{},
@@ -49,7 +51,11 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
+func (rm *ruleManager) addRule(rule DynamicRule, watcherPrefix bool) int {
+	prefixes := rm.crawlerPrefixes
+	if watcherPrefix {
+		prefixes = rm.watcherPrefixes
+	}
 	rm.rules = append(rm.rules, rule)
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
@@ -61,9 +67,9 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		rules[rule] = rm.currentIndex
 	}
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
-		rm.prefixes[prefix] = ""
+		prefixes[prefix] = ""
 	}
-	rm.prefixes = reducePrefixes(rm.prefixes)
+	prefixes = reducePrefixes(prefixes)
 	lastIndex := rm.currentIndex
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex

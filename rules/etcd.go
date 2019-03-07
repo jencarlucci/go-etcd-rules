@@ -7,6 +7,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 )
 
 type baseReadAPI struct {
@@ -41,6 +42,19 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	}
 	val := string(resp.Kvs[0].Value)
 	return &val, nil
+}
+
+func (edv3ra *etcdV3ReadAPI) getAll(key string) ([]*mvccpb.KeyValue, error) {
+	ctx := edv3ra.baseReadAPI.getContext()
+	defer edv3ra.cancel()
+	resp, err := edv3ra.kV.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Count == 0 {
+		return nil, nil
+	}
+	return resp.Kvs, nil
 }
 
 type keyWatcher interface {

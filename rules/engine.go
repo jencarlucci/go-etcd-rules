@@ -204,7 +204,7 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		lease:          e.cl,
 		engine:         e,
 	}
-	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule)
+	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleWatcherOnly(true))
 	return nil
 }
 
@@ -212,7 +212,6 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	lockPattern string,
 	callback interface{},
 	options ...RuleOption) {
-	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
 	ttl := e.options.lockTimeout
 	if opts.lockTimeout > 0 {
@@ -222,6 +221,7 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
 	}
+	ruleIndex := e.ruleMgr.addRule(rule, opts.watcherOnly)
 	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
@@ -230,9 +230,8 @@ func (e *baseEngine) addRule(rule DynamicRule,
 
 func (e *v3Engine) Run() {
 	prefixSlice := []string{}
-	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
-	for prefix := range prefixes {
+	for prefix := range e.ruleMgr.watcherPrefixes {
 		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
 		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
@@ -243,6 +242,9 @@ func (e *v3Engine) Run() {
 		go w.run()
 	}
 	logger := e.logger
+	for prefix := range e.ruleMgr.crawlerPrefixes {
+		prefixSlice = append(prefixSlice, prefix)
+	}
 	c, err := newIntCrawler(e.cl,
 		e.options.syncInterval,
 		e.baseEngine.keyProc,
