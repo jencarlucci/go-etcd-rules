@@ -20,7 +20,12 @@ func (p *prefixMap) Set(prefix, value string) {
 	p.prefixes[prefix] = value
 }
 
-type ruleManager struct {
+type ruleManager interface {
+	getStaticRules(key string, value *string) map[staticRule]int
+	addRule(rule DynamicRule, watcherOnly bool) int
+}
+
+type ruleManagerImpl struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
@@ -31,7 +36,7 @@ type ruleManager struct {
 }
 
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
-	rm := ruleManager{
+	rm := ruleManagerImpl{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
 		watcherPrefixes:    NewPrefixMap(),
 		crawlerPrefixes:    NewPrefixMap(),
@@ -40,10 +45,10 @@ func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) 
 		rules:              []DynamicRule{},
 		enhancedRuleFilter: enhancedRuleFilter,
 	}
-	return rm
+	return &rm
 }
 
-func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]int {
+func (rm *ruleManagerImpl) getStaticRules(key string, value *string) map[staticRule]int {
 	slashCount := strings.Count(key, "/")
 	out := make(map[staticRule]int)
 	rules, ok := rm.rulesBySlashCount[slashCount]
@@ -67,7 +72,7 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule, watcherOnly bool) int {
+func (rm *ruleManagerImpl) addRule(rule DynamicRule, watcherOnly bool) int {
 	p := &rm.watcherPrefixes
 	if !watcherOnly {
 		p = &rm.crawlerPrefixes

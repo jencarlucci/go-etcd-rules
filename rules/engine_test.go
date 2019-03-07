@@ -10,6 +10,27 @@ import (
 	"golang.org/x/net/context"
 )
 
+type mockRuleManager struct {
+	staticRules map[staticRule]int
+	watcherPrefixes    prefixMap
+	crawlerPrefixes    prefixMap
+}
+
+func newMockRuleManager() ruleManager {
+	return &mockRuleManager{
+		watcherPrefixes:    NewPrefixMap(),
+		crawlerPrefixes:    NewPrefixMap(),
+	}
+}
+
+func (m * mockRuleManager) getStaticRules(key string, value *string) map[staticRule]int {
+	return m.staticRules
+}
+
+func (m * mockRuleManager) addRule(rule DynamicRule, watcherOnly bool) int {
+	return 0
+}
+
 func channelWriteAfterCall(channel chan bool, f func()) {
 	f()
 	channel <- true
